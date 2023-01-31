@@ -1,15 +1,25 @@
-let IRPF_RANGES;
-let TAXES;
+import { Config } from "../config/Config.js";
 
-const PAYMENT_NUMBER = 14;
-const PAYMENT_NUMBER_TAXES = 12;
+export default class IrpfService {
+    static IRPF_RANGES;
+    static TAXES;
 
-export class SalaryCalculator {
+    static readonly PAYMENT_NUMBER = 14;
+    static readonly PAYMENT_NUMBER_TAXES = 12;
 
-    static async load() {
-        IRPF_RANGES = await fetch("./irpfRanges.json").then(response => response.json());
-        TAXES = await fetch("./taxes.json").then(response => response.json());
+
+    static async load(province, year) {
+
+        try {
+            IrpfService.IRPF_RANGES = await fetch(`${Config.PATHS.IRPF_INFO}${year}/irpfRanges-${province}.json`).then(response => response.json());
+            IrpfService.TAXES = await fetch(`${Config.PATHS.IRPF_INFO}taxes.json`).then(response => response.json());
+            return true;
+        } catch (error) {
+            return false;
+        }
+     
     }
+
 
     static calcWithTaxes(salary) {
 
@@ -17,17 +27,17 @@ export class SalaryCalculator {
             return 0;
         }
 
-        if(IRPF_RANGES === undefined || TAXES === undefined) {
+        if(IrpfService.IRPF_RANGES === undefined || IrpfService.TAXES === undefined) {
             throw new Error("IRPF_RANGES or TAXES are undefined, please load the data first");
         }
         
-        const irpf = SalaryCalculator.getIrpfValue(salary);
-        const contingenciasComunes = SalaryCalculator.getContingenciasComunesValue(salary);
-        const atur = SalaryCalculator.getAturValue(salary);
-        const fp = SalaryCalculator.getFpValue(salary);
+        const irpf = IrpfService.getIrpfValue(salary);
+        const contingenciasComunes = IrpfService.getContingenciasComunesValue(salary);
+        const atur = IrpfService.getAturValue(salary);
+        const fp = IrpfService.getFpValue(salary);
 
         const total_deductions = (irpf + contingenciasComunes + atur + fp);
-        return Math.ceil(((salary / PAYMENT_NUMBER) - total_deductions) * 100) / 100;
+        return Math.ceil(((salary / IrpfService.PAYMENT_NUMBER) - total_deductions) * 100) / 100;
     }
 
     static extraPayment(salary) {
@@ -36,11 +46,11 @@ export class SalaryCalculator {
             return 0;
         }
 
-        if(IRPF_RANGES === undefined || TAXES === undefined) {
+        if(IrpfService.IRPF_RANGES === undefined || IrpfService.TAXES === undefined) {
             throw new Error("IRPF_RANGES or TAXES are undefined, please load the data first");
         }
-        const irpf = SalaryCalculator.getIrpfValue(salary);
-        return Math.ceil(((salary / PAYMENT_NUMBER) - irpf) * 100) / 100;
+        const irpf = IrpfService.getIrpfValue(salary);
+        return Math.ceil(((salary / IrpfService.PAYMENT_NUMBER) - irpf) * 100) / 100;
 
     }
 
@@ -56,18 +66,16 @@ export class SalaryCalculator {
         }
 
         let irpf = undefined;
-		let currentYear = new Date().getFullYear();
-		console.log(IRPF_RANGES[currentYear]);
-	   
+
         // Get irpf on ranges
-        for (const minimum in IRPF_RANGES[currentYear]) {
+        for (const minimum in IrpfService.IRPF_RANGES) {
 
             const range = parseInt(minimum);
             if (salary <= range) {
                 return irpf;
             }
 
-            irpf = IRPF_RANGES[currentYear][minimum]; 
+            irpf = IrpfService.IRPF_RANGES[minimum]; 
         }
 
         return irpf;
@@ -84,7 +92,7 @@ export class SalaryCalculator {
             return 0;
         }
 
-        return (salary * (SalaryCalculator.getIrpf(salary) / 100)) / PAYMENT_NUMBER;
+        return (salary * (IrpfService.getIrpf(salary) / 100)) / IrpfService.PAYMENT_NUMBER;
     }
 
     /**
@@ -98,7 +106,7 @@ export class SalaryCalculator {
             return 0;
         }
 
-        return (salary * (TAXES.CONTINGENCIAS_COMUNES / 100)) / PAYMENT_NUMBER_TAXES;
+        return (salary * (IrpfService.TAXES.CONTINGENCIAS_COMUNES / 100)) / IrpfService.PAYMENT_NUMBER_TAXES;
     }
 
     /**
@@ -112,7 +120,7 @@ export class SalaryCalculator {
             return 0;
         }
 
-        return (salary * (TAXES.ATUR / 100)) / PAYMENT_NUMBER_TAXES;
+        return (salary * (IrpfService.TAXES.ATUR / 100)) / IrpfService.PAYMENT_NUMBER_TAXES;
     }
 
     /**
@@ -126,7 +134,14 @@ export class SalaryCalculator {
             return 0;
         }
         
-        return (salary * (TAXES.FP / 100)) / PAYMENT_NUMBER_TAXES;
+        return (salary * (IrpfService.TAXES.FP / 100)) / IrpfService.PAYMENT_NUMBER_TAXES;
     }
+
+
+    static clean() {
+        IrpfService.IRPF_RANGES = undefined;
+        IrpfService.TAXES = undefined;
+    }
+
 
 }
