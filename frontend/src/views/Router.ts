@@ -3,6 +3,7 @@ import { InitializeError } from "../errors/InitializeError.js";
 import { UIComponent } from "../lib/gtd/web/uicomponent.js";
 import ErrorView from "./error/ErrorView.ui.js";
 import HomeView from "./home/HomeView.ui.js";
+import TestView from "./test/TestView.ui.js";
 
 export default class Router {
 
@@ -44,6 +45,9 @@ export default class Router {
                 case "home":
                 case "calc":
                     new HomeView().show(params.splice(1), this.container);    
+                    break;
+                case "test":
+                    new TestView().show(params.splice(1), this.container);
                     break;
                 case "lang":
                     Config.setLanguage(params.splice(1)[0]);
